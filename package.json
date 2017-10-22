@@ -1,0 +1,13 @@
+{
+  "name": "facebook-timetable-bot",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "author": "Alexander Ionov",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.17.0",
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "socket.io-client": "^2.0.3"
+  }
+}
