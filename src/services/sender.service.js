@@ -1,37 +1,17 @@
 const axios = require('axios')
 const { messagesApiUrl, pageToken } = require('../configs/bot.config')
+const { getKeyboard } = require('../utils')
 
 const queuePool = {}
-
-function queueRequest(userId, message) {
-    if (!queuePool[userId]) {
-        queuePool[userId] = {}
-    }
-
-    const queue = queuePool[userId]
-    if (!queue.messages) {
-        queue.messages = []
-    }
-    console.log(message.text.length)
-    queue.messages.push(message)
-
-    if (queue.processing) {
-        return
-    }
-    queue.processing = true
-    console.log('Queue is locked')
-    processQueue(userId, queue)
-}
 
 async function processQueue(userId, queue) {
     if (queue.messages.length === 0) {
         queue.processing = false
-        console.log('Queue is unlocked')
         return
     }
 
-    const message = queue.messages.shift()
-    await SenderService.sendMessage(userId, message)
+    const meta = queue.messages.shift()
+    await SenderService.sendMessages(userId, meta)
     processQueue(userId, queue)
 }
 
@@ -54,7 +34,6 @@ class SenderService {
         }
         try {
             await axios.post(`${messagesApiUrl}?access_token=${pageToken}`, params)
-            console.log('Message has been sent')
         } catch (e) {
             console.error(`Error during sending a response: ${e}`)
         }
@@ -69,12 +48,60 @@ class SenderService {
      * @param {Array<object>=} keyboard Keyboard
      * @memberof SenderService
      */
-    static sendTextMessage(userId, text, keyboard) {
+    static async sendTextMessage(userId, text, keyboard) {
         const message = {
             text,
             quick_replies: keyboard
         }
-        queueRequest(userId, message)
+        await SenderService.sendMessage(userId, message)
+    }
+
+    /**
+     * Sends messages based on the meta info
+     * 
+     * @static
+     * @param {string} userId User ID
+     * @param {object} meta Meta info
+     * @memberof SenderService
+     */
+    static async sendMessages(userId, meta) {
+        const messages = meta.messages
+        const keyboard = getKeyboard(meta)
+        
+        for (let i = 0; i < messages.length - 1; i++) {
+            await SenderService.sendTextMessage(userId, messages[i])
+        }
+    
+        const lastMessage = messages[messages.length - 1]
+        if (lastMessage) {
+            await SenderService.sendTextMessage(userId, lastMessage, keyboard)
+        }
+    }
+
+    /**
+     * Queues message for sending
+     * 
+     * @static
+     * @param {string} userId User ID
+     * @param {message} meta Message meta
+     * @memberof SenderService
+     */
+    static queueMessage(userId, meta) {
+        if (!queuePool[userId]) {
+            queuePool[userId] = {}
+        }
+    
+        const queue = queuePool[userId]
+        if (!queue.messages) {
+            queue.messages = []
+        }
+        queue.messages.push(meta)
+    
+        if (queue.processing) {
+            return
+        }
+        queue.processing = true
+        processQueue(userId, queue)
     }
 
 }
