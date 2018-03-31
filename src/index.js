@@ -4,9 +4,9 @@ const io = require('socket.io-client')
 const SenderService = require('./services/sender.service')
 const { toPlatformUserId, toFacebookUserId, decodeAction } = require('./utils')
 const { port, token } = require('./configs/bot.config')
-const { platformUrl, clientName } = require('./configs/platform.config')
+const { platformUrl, clientName, shortMessages } = require('./configs/platform.config')
 
-const socket = io(platformUrl, { query: `name=${clientName}` })
+const socket = io(platformUrl, { query: `name=${clientName}&shortMessages=${shortMessages}` })
 
 socket.on('connect', () => console.log('Connection with the platform established successfully'))
 socket.on('disconnect', () => console.log('Connection with the platform has been dropped'))
